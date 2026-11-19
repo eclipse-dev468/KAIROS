@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KAIROS - Il tuo momento</title>
+<style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI', sans-serif; }
+  body { background:#000; color:#fff; height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; }
+  h1 { font-size:52px; letter-spacing:14px; margin-bottom:5px; }
+  h1 span { color:#00d4ff; }
+  p { color:#888; margin-bottom:30px; }
+  #orb { width:230px; height:230px; border-radius:50%; background:radial-gradient(circle at 30% 30%, #00d4ff, #0044ff 55%, #000 80%); box-shadow:0 0 60px #00d4ff, 0 0 120px #0044ff; animation:pulse 2s infinite; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:bold; text-align:center; line-height:1.3; }
+  #orb.listening { animation:pulseFast 0.5s infinite; background:radial-gradient(circle at 30% 30%, #fff, #00d4ff 50%, #0044ff); }
+  #orb.thinking { animation:spin 0.8s linear infinite; }
+  @keyframes pulse { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.05); } }
+  @keyframes pulseFast { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.15); } }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+  #testo { margin-top:30px; width:90%; max-width:620px; min-height:85px; background:#111; border:1px solid #222; border-radius:15px; padding:15px; text-align:center; font-size:18px; line-height:1.5; }
+  #btn { margin-top:20px; background:#00d4ff; color:#000; border:none; padding:12px 30px; border-radius:30px; font-size:16px; font-weight:bold; cursor:pointer; }
+  #btn:hover { background:#fff; }
+  .small { margin-top:15px; font-size:13px; color:#555; }
+  .badge { margin-top:10px; font-size:12px; color:#00d4ff; letter-spacing:3px; }
+</style>
+</head>
+<body>
+  <h1>KAI<span>ROS</span></h1>
+  <p>Il tuo momento - di Andrea / ECLIPSE</p>
+  <div id="orb" onclick="attivaKairos()">CLICCA<br>E PARLA</div>
+  <div id="testo">Ciao, sono KAIROS. Clicca sull'orb e dimmi "Ciao Kairos" per il briefing.</div>
+  <button id="btn" onclick="attivaKairos()">🎤 Attiva KAIROS</button>
+  <div class="badge">SFIDACUGINI • ECLIPSE • KAIROS</div>
+  <div class="small">Funziona con Chrome / Edge - serve il microfono. Dì "Ciao Kairos" per svegliarmi.</div>
+
+<script>
+  const orb = document.getElementById('orb');
+  const testo = document.getElementById('testo');
+  let recognition = null;
+  let attivo = false;
+
+  function parla(frase){
+    testo.innerHTML = "KAIROS: " + frase;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(frase);
+    u.lang = 'it-IT';
+    u.rate = 1;
+    u.pitch = 0.9;
+    synth.speak(u);
+  }
+
+  async function mandaAlServer(testoUtente){
+    try{
+      const r = await fetch('/api/kairos', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ testo: testoUtente })
+      });
+      const d = await r.json();
+      parla(d.risposta);
+    }catch(e){
+      // Se il server non c'è ancora, risponde in modalità offline
+      gestisciOffline(testoUtente.toLowerCase());
+    }
+  }
+
+  function gestisciOffline(cmd){
+    let risposta = "";
+    if(cmd.includes("ciao kairos")){
+      risposta = "Ciao Andrea. Sono KAIROS. ECLIPSE è pronto. Oggi si programma SFIDACUGINI fino a mezzanotte. Il server non è ancora collegato, ma io ci sono.";
+    } else if(cmd.includes("che ore sono") || cmd.includes("ora")){
+      const ora = new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+      risposta = "Sono le " + ora + ". È il momento giusto per programmare.";
+    } else if(cmd.includes("forza") || cmd.includes("carica") || cmd.includes("motiva")){
+      risposta = "Ascolta ECLIPSE. Non ti serve l'approvazione di nessuno. Testa bassa, programma fino a mezzanotte. Il 25 dicembre farai vedere a tuo padre che ce l'hai fatta.";
+    } else {
+      risposta = "Ho capito: " + cmd + ". Quando collegheremo il server, potrò usare memoria e calendario. Intanto sono qui.";
+    }
+    parla(risposta);
+  }
+
+  function attivaKairos(){
+    if(!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)){
+      parla("Il tuo browser non supporta il riconoscimento vocale. Usa Chrome.");
+      return;
+    }
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!recognition){
+      recognition = new SR();
+      recognition.lang = 'it-IT';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.onresult = (e) => {
+        const ultima = e.results[e.results.length-1][0].transcript;
+        testo.innerHTML = "Tu: " + ultima + "<br>...";
+        orb.classList.add('thinking');
+        setTimeout(()=>{ orb.classList.remove('thinking'); mandaAlServer(ultima); }, 500);
+      };
+      recognition.onend = () => { if(attivo) recognition.start(); };
+    }
+    attivo = true;
+    orb.classList.add('listening');
+    orb.innerHTML = "TI<br>ASCOLTO";
+    recognition.start();
+    parla("KAIROS attivo. Dimmi pure, Andrea.");
+  }
+</script>
+</body>
+</html>
