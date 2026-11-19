@@ -1,8 +1,6 @@
 // Lettura di un calendario tramite link iCal (.ics): Google Calendar, Apple iCloud, Outlook.
 // Sola lettura. Supporta eventi singoli, giornate intere, fusi orari ed eventi ricorrenti comuni.
-
 let cache = { url: "", at: 0, events: [], error: null };
-
 export async function loadCalendar(url, { maxAgeMs = 5 * 60_000 } = {}) {
   if (!url) return { events: [], error: null };
   if (cache.url === url && Date.now() - cache.at < maxAgeMs) return cache;
