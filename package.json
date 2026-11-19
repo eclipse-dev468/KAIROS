@@ -1,0 +1,14 @@
+{
+  "name": "kairos",
+  "version": "1.0.0",
+  "description": "KAIROS - Assistente vocale personale di Andrea / ECLIPSE. Il tuo momento.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "setup": "node setup.mjs"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5"
+  }
+}
